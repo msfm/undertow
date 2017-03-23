@@ -207,12 +207,12 @@ public class URLUtils {
                     } else if (c == '&') {
                         if (attrName != null) {
                             handle(exchange, decode(charset, attrName, doDecode), decode(charset, string.substring(stringStart, i), doDecode));
-                            if(++count > max) {
+                            if(max > -1 && ++count > max) {
                                 throw UndertowMessages.MESSAGES.tooManyParameters(max);
                             }
                         } else {
                             handle(exchange, decode(charset, string.substring(stringStart, i), doDecode), "");
-                            if(++count > max) {
+                            if(max > -1 && ++count > max) {
                                 throw UndertowMessages.MESSAGES.tooManyParameters(max);
                             }
                         }
@@ -222,12 +222,12 @@ public class URLUtils {
                 }
                 if (attrName != null) {
                     handle(exchange, decode(charset, attrName, doDecode), decode(charset, string.substring(stringStart, string.length()), doDecode));
-                    if(++count > max) {
+                    if(max > -1 && ++count > max) {
                         throw UndertowMessages.MESSAGES.tooManyParameters(max);
                     }
                 } else if (string.length() != stringStart) {
                     handle(exchange, decode(charset, string.substring(stringStart, string.length()), doDecode), "");
-                    if(++count > max) {
+                    if(max > -1 && ++count > max) {
                         throw UndertowMessages.MESSAGES.tooManyParameters(max);
                     }
                 }
