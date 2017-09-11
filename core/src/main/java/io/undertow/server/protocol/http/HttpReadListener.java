@@ -241,8 +241,13 @@ final class HttpReadListener implements ChannelListener<ConduitStreamSourceChann
                 sendBadRequestAndClose(connection.getChannel(), UndertowMessages.MESSAGES.moreThanOneHostHeader());
                 return;
             }
+            if(host != null && host.getFirst().isEmpty()) {
+                // Empty Host header ("Host: ") is invalid
+                sendBadRequestAndClose(connection.getChannel(), UndertowMessages.MESSAGES.invalidHeaders());
+                return;
+            }
             if(requireHostHeader && httpServerExchange.getProtocol().equals(Protocols.HTTP_1_1)) {
-                if(host == null || host.size() ==0 || host.getFirst().isEmpty()) {
+                if(host == null || host.size() ==0) {
                     sendBadRequestAndClose(connection.getChannel(), UndertowMessages.MESSAGES.noHostInHttp11Request());
                     return;
                 }
