@@ -94,9 +94,10 @@ public class Connectors {
     public static void flattenCookies(final HttpServerExchange exchange) {
         Map<String, Cookie> cookies = exchange.getResponseCookiesInternal();
         boolean enableRfc6265Validation = exchange.getConnection().getUndertowOptions().get(UndertowOptions.ENABLE_RFC6265_COOKIE_VALIDATION, UndertowOptions.DEFAULT_ENABLE_RFC6265_COOKIE_VALIDATION);
+        boolean secureCookieForHttps = LegacyCookieSupport.SECURE_COOKIE_FOR_HTTPS && exchange.isSecure();
         if (cookies != null) {
             for (Map.Entry<String, Cookie> entry : cookies.entrySet()) {
-                exchange.getResponseHeaders().add(Headers.SET_COOKIE, getCookieString(entry.getValue(), enableRfc6265Validation));
+                exchange.getResponseHeaders().add(Headers.SET_COOKIE, getCookieString(entry.getValue(), enableRfc6265Validation, secureCookieForHttps));
             }
         }
     }
@@ -147,16 +148,16 @@ public class Connectors {
         exchange.resetRequestChannel();
     }
 
-    private static String getCookieString(final Cookie cookie, boolean enableRfc6265Validation) {
+    private static String getCookieString(final Cookie cookie, boolean enableRfc6265Validation, boolean secureCookieForHttps) {
         if(enableRfc6265Validation) {
-            return addRfc6265ResponseCookieToExchange(cookie);
+            return addRfc6265ResponseCookieToExchange(cookie, secureCookieForHttps);
         } else {
             switch (LegacyCookieSupport.adjustedCookieVersion(cookie)) {
                 case 0:
-                    return addVersion0ResponseCookieToExchange(cookie);
+                    return addVersion0ResponseCookieToExchange(cookie, secureCookieForHttps);
                 case 1:
                 default:
-                    return addVersion1ResponseCookieToExchange(cookie);
+                    return addVersion1ResponseCookieToExchange(cookie, secureCookieForHttps);
             }
         }
     }
@@ -165,7 +166,7 @@ public class Connectors {
         exchange.setRequestStartTime(System.nanoTime());
     }
 
-    private static String addRfc6265ResponseCookieToExchange(final Cookie cookie) {
+    private static String addRfc6265ResponseCookieToExchange(final Cookie cookie, boolean secureCookieForHttps) {
         final StringBuilder header = new StringBuilder(cookie.getName());
         header.append("=");
         if(cookie.getValue() != null) {
@@ -182,7 +183,7 @@ public class Connectors {
         if (cookie.isDiscard()) {
             header.append("; Discard");
         }
-        if (cookie.isSecure()) {
+        if (cookie.isSecure() || secureCookieForHttps) {
             header.append("; Secure");
         }
         if (cookie.isHttpOnly()) {
@@ -230,7 +231,7 @@ public class Connectors {
         return header.toString();
     }
 
-    private static String addVersion0ResponseCookieToExchange(final Cookie cookie) {
+    private static String addVersion0ResponseCookieToExchange(final Cookie cookie, boolean secureCookieForHttps) {
         final StringBuilder header = new StringBuilder(cookie.getName());
         header.append("=");
         if(cookie.getValue() != null) {
@@ -245,7 +246,7 @@ public class Connectors {
             header.append("; domain=");
             LegacyCookieSupport.maybeQuote(header, cookie.getDomain());
         }
-        if (cookie.isSecure()) {
+        if (cookie.isSecure() || secureCookieForHttps) {
             header.append("; secure");
         }
         if (cookie.isHttpOnly()) {
@@ -283,7 +284,7 @@ public class Connectors {
 
     }
 
-    private static String addVersion1ResponseCookieToExchange(final Cookie cookie) {
+    private static String addVersion1ResponseCookieToExchange(final Cookie cookie, boolean secureCookieForHttps) {
 
         final StringBuilder header = new StringBuilder(cookie.getName());
         header.append("=");
@@ -302,7 +303,7 @@ public class Connectors {
         if (cookie.isDiscard()) {
             header.append("; Discard");
         }
-        if (cookie.isSecure()) {
+        if (cookie.isSecure() || secureCookieForHttps) {
             header.append("; Secure");
         }
         if (cookie.isHttpOnly()) {

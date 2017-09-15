@@ -58,6 +58,16 @@ public final class LegacyCookieSupport {
      */
     static final boolean COMMA_IS_SEPARATOR = Boolean.getBoolean("io.undertow.legacy.cookie.COMMA_IS_SEPARATOR");
 
+
+    /**
+     * If set to true, <code>Secure</code> attribute will be added to response
+     * cookies for the request is made using a secure channel, such as HTTPS.
+     * So, Secure Cookie will be automatically enabled regardless of
+     * cookie-config in web.xml.
+     */
+    public static final boolean SECURE_COOKIE_FOR_HTTPS = Boolean.getBoolean("io.undertow.legacy.cookie.SECURE_COOKIE_FOR_HTTPS");
+
+
     /**
      * The list of separators that apply to version 0 cookies. To quote the
      * spec, these are comma, semi-colon and white-space. The HTTP spec
