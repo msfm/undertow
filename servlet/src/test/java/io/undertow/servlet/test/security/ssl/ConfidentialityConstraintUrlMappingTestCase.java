@@ -36,6 +36,7 @@ import io.undertow.testutils.TestHttpClient;
 import io.undertow.util.StatusCodes;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.params.ClientPNames;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -112,6 +113,22 @@ public class ConfidentialityConstraintUrlMappingTestCase {
     @Test
     public void testConfidential() throws IOException {
         internalTest("/confidential", "https");
+    }
+
+    @Test
+    public void testConfidentialInvalidEmptyHost() throws IOException {
+        TestHttpClient client = new TestHttpClient();
+        client.setSSLContext(DefaultServer.getClientSSLContext());
+        try {
+            HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/servletContext/confidential");
+            get.removeHeaders("Host");
+            get.addHeader("Host","");
+            client.getParams().setParameter(ClientPNames.HANDLE_REDIRECTS, false);
+            HttpResponse result = client.execute(get);
+            Assert.assertEquals(StatusCodes.BAD_REQUEST, result.getStatusLine().getStatusCode());
+        } finally {
+            client.getConnectionManager().shutdown();
+        }
     }
 
     private void internalTest(final String path, final String expectedScheme) throws IOException {

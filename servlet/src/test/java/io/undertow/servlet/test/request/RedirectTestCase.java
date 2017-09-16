@@ -30,6 +30,7 @@ import io.undertow.testutils.TestHttpClient;
 import io.undertow.util.StatusCodes;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.params.ClientPNames;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -80,6 +81,21 @@ public class RedirectTestCase {
         //test redirects
         runtest("/servletContext/redirect/foo?redirect=../bar", "null", "/bar", "http://localhost:" + port + "/servletContext/bar", "/servletContext/bar", "");
         runtest("/servletContext/redirect/foo/?redirect=../../bar", "null", "/bar", "http://localhost:" + port + "/servletContext/bar", "/servletContext/bar", "");
+    }
+
+    @Test
+    public void testServletRedirectInvalidEmptyHost() throws Exception {
+        TestHttpClient client = new TestHttpClient();
+        try {
+            HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/servletContext/redirect/foo?redirect=/test");
+            get.removeHeaders("Host");
+            get.addHeader("Host","");
+            client.getParams().setParameter(ClientPNames.HANDLE_REDIRECTS, false);
+            HttpResponse result = client.execute(get);
+            Assert.assertEquals(StatusCodes.BAD_REQUEST, result.getStatusLine().getStatusCode());
+        } finally {
+            client.getConnectionManager().shutdown();
+        }
     }
 
     private void runtest(String request, String... expectedBody) throws Exception {
