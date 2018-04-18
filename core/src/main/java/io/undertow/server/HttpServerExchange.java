@@ -120,6 +120,11 @@ public final class HttpServerExchange extends AbstractAttachable {
      */
     public static final AttachmentKey<Boolean> SECURE_REQUEST = AttachmentKey.create(Boolean.class);
 
+    /**
+     * Attachment key that can be used to hold an invalidated session
+     */
+    public static final AttachmentKey<String> INVALIDATED_SESSION = AttachmentKey.create(String.class);
+
     private final ServerConnection connection;
     private final HeaderMap requestHeaders;
     private final HeaderMap responseHeaders;

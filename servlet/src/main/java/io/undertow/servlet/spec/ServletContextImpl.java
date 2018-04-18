@@ -1187,8 +1187,6 @@ public class ServletContextImpl implements ServletContext {
      */
     static final class ServletContextSessionConfig implements SessionConfig {
 
-        private final AttachmentKey<String> INVALIDATED = AttachmentKey.create(String.class);
-
         private final SessionConfig delegate;
 
         private ServletContextSessionConfig(SessionConfig delegate) {
@@ -1202,13 +1200,13 @@ public class ServletContextImpl implements ServletContext {
 
         @Override
         public void clearSession(HttpServerExchange exchange, String sessionId) {
-            exchange.putAttachment(INVALIDATED, sessionId);
+            exchange.putAttachment(HttpServerExchange.INVALIDATED_SESSION, sessionId);
             delegate.clearSession(exchange, sessionId);
         }
 
         @Override
         public String findSessionId(HttpServerExchange exchange) {
-            String invalidated = exchange.getAttachment(INVALIDATED);
+            String invalidated = exchange.getAttachment(HttpServerExchange.INVALIDATED_SESSION);
             ServletRequestContext src = exchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
             final String current;
             if(src.getOverridenSessionId() == null) {
