@@ -44,12 +44,15 @@ import java.util.regex.Pattern;
 @RunWith(DefaultServer.class)
 public class DefaultCharacterEncodingTestCase {
 
-    private void setup(final String defaultEncoding) throws ServletException {
+    private void setup(final String defaultEncoding, boolean useListenerEncoding) throws ServletException {
         DeploymentUtils.setupServlet(new ServletExtension() {
                                          @Override
                                          public void handleDeployment(DeploymentInfo deploymentInfo, ServletContext servletContext) {
                                              if (defaultEncoding != null) {
                                                  deploymentInfo.setDefaultEncoding(defaultEncoding);
+                                             }
+                                             if (useListenerEncoding) {
+                                                 deploymentInfo.setUseListenerEncoding(useListenerEncoding);
                                              }
                                          }
                                      },
@@ -60,7 +63,14 @@ public class DefaultCharacterEncodingTestCase {
     private void testDefaultEncoding(String defaultCharacterEncoding,
                                      String expectedRequestCharacterEncoding,
                                      String expectedResponseCharacterEncoding) throws IOException, ServletException {
-        setup(defaultCharacterEncoding);
+        testDefaultEncoding(defaultCharacterEncoding, false, expectedRequestCharacterEncoding, expectedResponseCharacterEncoding);
+    }
+
+    private void testDefaultEncoding(String defaultCharacterEncoding,
+                                     boolean useListenerEncoding,
+                                     String expectedRequestCharacterEncoding,
+                                     String expectedResponseCharacterEncoding) throws IOException, ServletException {
+        setup(defaultCharacterEncoding, useListenerEncoding);
         TestHttpClient client = new TestHttpClient();
         try {
             HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/servletContext");
@@ -99,5 +109,15 @@ public class DefaultCharacterEncodingTestCase {
     @Test
     public void testDefaultEncodingSetNotEqualDefault() throws IOException, ServletException {
         testDefaultEncoding("UTF-8", "UTF-8", "UTF-8");
+    }
+
+    @Test
+    public void testUseListnerEncoding() throws IOException, ServletException {
+        testDefaultEncoding(null, true, "UTF-8", "UTF-8");
+    }
+
+    @Test
+    public void testUseListnerEncodingOverDefaultEncoding() throws IOException, ServletException {
+        testDefaultEncoding("ISO-8859-1", true, "UTF-8", "UTF-8");
     }
 }

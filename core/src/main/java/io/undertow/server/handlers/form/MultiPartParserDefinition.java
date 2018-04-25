@@ -64,6 +64,8 @@ public class MultiPartParserDefinition implements FormParserFactory.ParserDefini
 
     private String defaultEncoding = StandardCharsets.ISO_8859_1.displayName();
 
+    private boolean useListenerEncoding = false;
+
     private long maxIndividualFileSize = -1;
 
     public MultiPartParserDefinition() {
@@ -83,7 +85,11 @@ public class MultiPartParserDefinition implements FormParserFactory.ParserDefini
                 UndertowLogger.REQUEST_LOGGER.debugf("Could not find boundary in multipart request with ContentType: %s, multipart data will not be available", mimeType);
                 return null;
             }
-            final MultiPartUploadHandler parser = new MultiPartUploadHandler(exchange, boundary, maxIndividualFileSize, defaultEncoding);
+            String charset = defaultEncoding;
+            if (useListenerEncoding) {
+                charset = exchange.getConnection().getUndertowOptions().get(UndertowOptions.URL_CHARSET, StandardCharsets.UTF_8.name());
+            }
+            final MultiPartUploadHandler parser = new MultiPartUploadHandler(exchange, boundary, maxIndividualFileSize, charset);
             exchange.addExchangeCompleteListener(new ExchangeCompletionListener() {
                 @Override
                 public void exchangeEvent(final HttpServerExchange exchange, final NextListener nextListener) {
@@ -127,6 +133,15 @@ public class MultiPartParserDefinition implements FormParserFactory.ParserDefini
 
     public MultiPartParserDefinition setDefaultEncoding(final String defaultEncoding) {
         this.defaultEncoding = defaultEncoding;
+        return this;
+    }
+
+    public boolean isUseListenerEncoding() {
+        return useListenerEncoding;
+    }
+
+    public MultiPartParserDefinition setUseListenerEncoding(boolean useListenerEncoding) {
+        this.useListenerEncoding = useListenerEncoding;
         return this;
     }
 

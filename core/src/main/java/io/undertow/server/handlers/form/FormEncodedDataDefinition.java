@@ -33,6 +33,7 @@ import org.xnio.channels.StreamSourceChannel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Parser definition for form encoded data. This handler takes effect for any request that has a mime type
@@ -45,6 +46,7 @@ public class FormEncodedDataDefinition implements FormParserFactory.ParserDefini
 
     public static final String APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
     private String defaultEncoding = "ISO-8859-1";
+    private boolean useListenerEncoding = false;
     private boolean forceCreation = false; //if the parser should be created even if the correct headers are missing
 
     public FormEncodedDataDefinition() {
@@ -56,6 +58,9 @@ public class FormEncodedDataDefinition implements FormParserFactory.ParserDefini
         if (forceCreation || (mimeType != null && mimeType.startsWith(APPLICATION_X_WWW_FORM_URLENCODED))) {
 
             String charset = defaultEncoding;
+            if (useListenerEncoding) {
+                charset = exchange.getConnection().getUndertowOptions().get(UndertowOptions.URL_CHARSET, StandardCharsets.UTF_8.name());
+            }
             String contentType = exchange.getRequestHeaders().getFirst(Headers.CONTENT_TYPE);
             if (contentType != null) {
                 String cs = Headers.extractQuotedValueFromHeader(contentType, "charset");
@@ -84,6 +89,15 @@ public class FormEncodedDataDefinition implements FormParserFactory.ParserDefini
 
     public FormEncodedDataDefinition setDefaultEncoding(final String defaultEncoding) {
         this.defaultEncoding = defaultEncoding;
+        return this;
+    }
+
+    public boolean isUseListenerEncoding() {
+        return useListenerEncoding;
+    }
+
+    public FormEncodedDataDefinition setUseListenerEncoding(boolean useListenerEncoding) {
+        this.useListenerEncoding = useListenerEncoding;
         return this;
     }
 

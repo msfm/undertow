@@ -95,6 +95,7 @@ public class DeploymentInfo implements Cloneable {
     private String defaultEncoding;
     private String defaultRequestEncoding;
     private String defaultResponseEncoding;
+    private boolean useListenerEncoding;
     private String urlEncoding = null;
     private boolean ignoreFlush = false;
     private AuthorizationManager authorizationManager = DefaultAuthorizationManager.INSTANCE;
@@ -326,6 +327,15 @@ public class DeploymentInfo implements Cloneable {
      */
     public DeploymentInfo setDefaultEncoding(String defaultEncoding) {
         this.defaultEncoding = defaultEncoding;
+        return this;
+    }
+
+    public boolean isUseListenerEncoding() {
+        return useListenerEncoding;
+    }
+
+    public DeploymentInfo setUseListenerEncoding(boolean useListenerEncoding) {
+        this.useListenerEncoding = useListenerEncoding;
         return this;
     }
 
@@ -1410,6 +1420,7 @@ public class DeploymentInfo implements Cloneable {
         info.identityManager = identityManager;
         info.confidentialPortManager = confidentialPortManager;
         info.defaultEncoding = defaultEncoding;
+        info.useListenerEncoding = useListenerEncoding;
         info.urlEncoding = urlEncoding;
         info.securityConstraints.addAll(securityConstraints);
         info.outerHandlerChainWrappers.addAll(outerHandlerChainWrappers);
@@ -1463,6 +1474,5 @@ public class DeploymentInfo implements Cloneable {
         info.deploymentCompleteListeners.addAll(deploymentCompleteListeners);
         return info;
     }
-
 
 }

@@ -23,6 +23,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,6 +42,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import io.undertow.UndertowLogger;
+import io.undertow.UndertowOptions;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.protocol.http.HttpAttachments;
 import io.undertow.servlet.UndertowServletMessages;
@@ -325,7 +327,11 @@ public final class HttpServletResponseImpl implements HttpServletResponse {
     @Override
     public String getCharacterEncoding() {
         if (charset == null) {
-            return servletContext.getDeployment().getDefaultResponseCharset().name();
+            if (servletContext.getDeployment().getDeploymentInfo().isUseListenerEncoding()) {
+                return exchange.getConnection().getUndertowOptions().get(UndertowOptions.URL_CHARSET, StandardCharsets.UTF_8.name());
+            } else {
+                return servletContext.getDeployment().getDefaultResponseCharset().name();
+            }
         }
         return charset;
     }

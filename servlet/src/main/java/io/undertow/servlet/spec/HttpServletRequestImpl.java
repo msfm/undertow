@@ -18,6 +18,7 @@
 
 package io.undertow.servlet.spec;
 
+import io.undertow.UndertowOptions;
 import io.undertow.security.api.SecurityContext;
 import io.undertow.security.idm.Account;
 import io.undertow.server.HttpServerExchange;
@@ -57,6 +58,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.AccessController;
 import java.security.Principal;
@@ -603,6 +605,10 @@ public final class HttpServletRequestImpl implements HttpServletRequest {
             return characterEncodingFromHeader;
         }
 
+        if (servletContext.getDeployment().getDeploymentInfo().isUseListenerEncoding()) {
+            return exchange.getConnection().getUndertowOptions().get(UndertowOptions.URL_CHARSET, StandardCharsets.UTF_8.name());
+        }
+
         if (servletContext.getDeployment().getDeploymentInfo().getDefaultRequestEncoding() != null ||
                 servletContext.getDeployment().getDeploymentInfo().getDefaultEncoding() != null) {
             return servletContext.getDeployment().getDefaultRequestCharset().name();
@@ -872,7 +878,7 @@ public final class HttpServletRequestImpl implements HttpServletRequest {
             if (characterEncoding != null) {
                 charSet = characterEncoding;
             } else {
-                String c = getCharacterEncodingFromHeader();
+                String c = getCharacterEncoding();
                 if (c != null) {
                     try {
                         charSet = Charset.forName(c);
