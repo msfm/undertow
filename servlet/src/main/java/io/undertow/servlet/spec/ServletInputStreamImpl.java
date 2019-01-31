@@ -62,9 +62,9 @@ public class ServletInputStreamImpl extends ServletInputStream {
     private static final int FLAG_FINISHED = 1 << 2;
     private static final int FLAG_ON_DATA_READ_CALLED = 1 << 3;
 
-    private int state;
-    private AsyncContextImpl asyncContext;
-    private PooledByteBuffer pooled;
+    private volatile int state;
+    private volatile AsyncContextImpl asyncContext;
+    private volatile PooledByteBuffer pooled;
 
     public ServletInputStreamImpl(final HttpServletRequestImpl request) {
         this.request = request;
