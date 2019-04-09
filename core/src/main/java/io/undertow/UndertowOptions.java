@@ -332,6 +332,8 @@ public class UndertowOptions {
      */
     public static final Option<Integer> SHUTDOWN_TIMEOUT = Option.simple(UndertowOptions.class, "SHUTDOWN_TIMEOUT", Integer.class);
 
+    public static final Option<Boolean> TRACK_CONNECTIONS_ENABLED = Option.simple(UndertowOptions.class, "TRACK_CONNECTIONS_ENABLED", Boolean.class);
+
     private UndertowOptions() {
 
     }

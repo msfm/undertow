@@ -71,6 +71,8 @@ public class AjpOpenListener implements OpenListener {
     private volatile boolean statisticsEnabled;
     private final ConnectorStatisticsImpl connectorStatistics;
 
+    private volatile boolean trackConnectionsEnabled;
+
     private final ServerConnection.CloseListener closeListener = new ServerConnection.CloseListener() {
         @Override
         public void closed(ServerConnection connection) {
@@ -99,6 +101,7 @@ public class AjpOpenListener implements OpenListener {
         parser = new AjpRequestParser(undertowOptions.get(URL_CHARSET, StandardCharsets.UTF_8.name()), undertowOptions.get(DECODE_URL, true), undertowOptions.get(UndertowOptions.MAX_PARAMETERS, UndertowOptions.DEFAULT_MAX_PARAMETERS), undertowOptions.get(UndertowOptions.MAX_HEADERS, UndertowOptions.DEFAULT_MAX_HEADERS), undertowOptions.get(UndertowOptions.ALLOW_ENCODED_SLASH, false), undertowOptions.get(UndertowOptions.ALLOW_UNESCAPED_CHARACTERS_IN_URL, false));
         connectorStatistics = new ConnectorStatisticsImpl();
         statisticsEnabled = undertowOptions.get(UndertowOptions.ENABLE_CONNECTOR_STATISTICS, false);
+        trackConnectionsEnabled = undertowOptions.get(UndertowOptions.TRACK_CONNECTIONS_ENABLED, false);
     }
 
     @Override
@@ -140,14 +143,15 @@ public class AjpOpenListener implements OpenListener {
         }
         connection.setAjpReadListener(readListener);
 
-        connections.add(connection);
-        connection.addCloseListener(new ServerConnection.CloseListener() {
-            @Override
-            public void closed(ServerConnection c) {
-                connections.remove(connection);
-            }
-        });
-
+        if (trackConnectionsEnabled) {
+            connections.add(connection);
+            connection.addCloseListener(new ServerConnection.CloseListener() {
+                @Override
+                public void closed(ServerConnection c) {
+                    connections.remove(connection);
+                }
+            });
+        }
 
         readListener.startRequest();
         channel.getSourceChannel().setReadListener(readListener);
@@ -176,6 +180,7 @@ public class AjpOpenListener implements OpenListener {
         }
         this.undertowOptions = undertowOptions;
         statisticsEnabled = undertowOptions.get(UndertowOptions.ENABLE_CONNECTOR_STATISTICS, false);
+        trackConnectionsEnabled = undertowOptions.get(UndertowOptions.TRACK_CONNECTIONS_ENABLED, false);
         parser = new AjpRequestParser(undertowOptions.get(URL_CHARSET, StandardCharsets.UTF_8.name()), undertowOptions.get(DECODE_URL, true), undertowOptions.get(UndertowOptions.MAX_PARAMETERS, UndertowOptions.DEFAULT_MAX_PARAMETERS), undertowOptions.get(UndertowOptions.MAX_HEADERS, UndertowOptions.DEFAULT_MAX_HEADERS), undertowOptions.get(UndertowOptions.ALLOW_ENCODED_SLASH, false), undertowOptions.get(UndertowOptions.ALLOW_UNESCAPED_CHARACTERS_IN_URL, false));
     }
 
@@ -194,8 +199,10 @@ public class AjpOpenListener implements OpenListener {
 
     @Override
     public void closeConnections() {
-        for(AjpServerConnection i : connections) {
-            IoUtils.safeClose(i);
+        if (trackConnectionsEnabled) {
+            for(AjpServerConnection i : connections) {
+                IoUtils.safeClose(i);
+            }
         }
     }
 

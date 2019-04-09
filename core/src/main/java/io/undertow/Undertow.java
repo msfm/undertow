@@ -616,24 +616,28 @@ public final class Undertow {
         }
 
         public synchronized void suspend() {
-            suspended = true;
-            channel.suspendAccepts();
-            CountDownLatch latch = new CountDownLatch(1);
-            //the channel may be in the middle of an accept, we need to close from the IO thread
-            channel.getIoThread().execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        openListener.closeConnections();
-                    } finally {
-                        latch.countDown();
+            if (openListener.getUndertowOptions().get(UndertowOptions.TRACK_CONNECTIONS_ENABLED, false)) {
+                suspended = true;
+                channel.suspendAccepts();
+                CountDownLatch latch = new CountDownLatch(1);
+                //the channel may be in the middle of an accept, we need to close from the IO thread
+                channel.getIoThread().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            openListener.closeConnections();
+                        } finally {
+                            latch.countDown();
+                        }
                     }
+                });
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-            });
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+            } else {
+                UndertowLogger.ROOT_LOGGER.warnf("Listener does not enable tracking connections. Set UndertowOptions.TRACK_CONNECTIONS_ENABLED to true to utilize suspend().");
             }
         }
 

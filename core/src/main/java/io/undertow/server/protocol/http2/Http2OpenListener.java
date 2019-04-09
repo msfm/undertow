@@ -75,6 +75,8 @@ public final class Http2OpenListener implements ChannelListener<StreamConnection
     private final ConnectorStatisticsImpl connectorStatistics;
     private final String protocol;
 
+    private volatile boolean trackConnectionsEnabled;
+
     @Deprecated
     public Http2OpenListener(final Pool<ByteBuffer> pool) {
         this(pool, OptionMap.EMPTY);
@@ -106,6 +108,7 @@ public final class Http2OpenListener implements ChannelListener<StreamConnection
         buf.close();
         connectorStatistics = new ConnectorStatisticsImpl();
         statisticsEnabled = undertowOptions.get(UndertowOptions.ENABLE_STATISTICS, false);
+        trackConnectionsEnabled = undertowOptions.get(UndertowOptions.TRACK_CONNECTIONS_ENABLED, false);
         this.protocol = protocol;
     }
 
@@ -127,13 +130,15 @@ public final class Http2OpenListener implements ChannelListener<StreamConnection
             http2Channel.addCloseTask(closeTask);
         }
 
-        connections.add(http2Channel);
-        http2Channel.addCloseTask(new ChannelListener<Http2Channel>() {
-            @Override
-            public void handleEvent(Http2Channel channel) {
-                connections.remove(channel);
-            }
-        });
+        if (trackConnectionsEnabled) {
+            connections.add(http2Channel);
+            http2Channel.addCloseTask(new ChannelListener<Http2Channel>() {
+                @Override
+                public void handleEvent(Http2Channel channel) {
+                    connections.remove(channel);
+                }
+            });
+        }
         http2Channel.getReceiveSetter().set(new Http2ReceiveListener(rootHandler, getUndertowOptions(), bufferSize, connectorStatistics));
         http2Channel.resumeReceives();
 
@@ -149,8 +154,10 @@ public final class Http2OpenListener implements ChannelListener<StreamConnection
 
     @Override
     public void closeConnections() {
-        for(Http2Channel i : connections) {
-            IoUtils.safeClose(i);
+        if (trackConnectionsEnabled) {
+            for(Http2Channel i : connections) {
+                IoUtils.safeClose(i);
+            }
         }
     }
 
@@ -176,6 +183,7 @@ public final class Http2OpenListener implements ChannelListener<StreamConnection
         }
         this.undertowOptions = undertowOptions;
         statisticsEnabled = undertowOptions.get(UndertowOptions.ENABLE_CONNECTOR_STATISTICS, false);
+        trackConnectionsEnabled = undertowOptions.get(UndertowOptions.TRACK_CONNECTIONS_ENABLED, false);
     }
 
     @Override

@@ -70,6 +70,8 @@ public final class HttpOpenListener implements ChannelListener<StreamConnection>
     private volatile boolean statisticsEnabled;
     private final ConnectorStatisticsImpl connectorStatistics;
 
+    private volatile boolean trackConnectionsEnabled;
+
     @Deprecated
     public HttpOpenListener(final Pool<ByteBuffer> pool) {
         this(pool, OptionMap.EMPTY);
@@ -93,6 +95,7 @@ public final class HttpOpenListener implements ChannelListener<StreamConnection>
         parser = HttpRequestParser.instance(undertowOptions);
         connectorStatistics = new ConnectorStatisticsImpl();
         statisticsEnabled = undertowOptions.get(UndertowOptions.ENABLE_CONNECTOR_STATISTICS, false);
+        trackConnectionsEnabled = undertowOptions.get(UndertowOptions.TRACK_CONNECTIONS_ENABLED, false);
     }
 
     @Override
@@ -149,13 +152,15 @@ public final class HttpOpenListener implements ChannelListener<StreamConnection>
             connectorStatistics.incrementConnectionCount();
         }
 
-        connections.add(connection);
-        connection.addCloseListener(new ServerConnection.CloseListener() {
-            @Override
-            public void closed(ServerConnection c) {
-                connections.remove(connection);
-            }
-        });
+        if (trackConnectionsEnabled) {
+            connections.add(connection);
+            connection.addCloseListener(new ServerConnection.CloseListener() {
+                @Override
+                public void closed(ServerConnection c) {
+                    connections.remove(connection);
+                }
+            });
+        }
         connection.setReadListener(readListener);
         readListener.newRequest();
         channel.getSourceChannel().setReadListener(readListener);
@@ -185,6 +190,7 @@ public final class HttpOpenListener implements ChannelListener<StreamConnection>
         this.undertowOptions = undertowOptions;
         this.parser = HttpRequestParser.instance(undertowOptions);
         statisticsEnabled = undertowOptions.get(UndertowOptions.ENABLE_CONNECTOR_STATISTICS, false);
+        trackConnectionsEnabled = undertowOptions.get(UndertowOptions.TRACK_CONNECTIONS_ENABLED, false);
     }
 
     @Override
@@ -202,13 +208,15 @@ public final class HttpOpenListener implements ChannelListener<StreamConnection>
 
     @Override
     public void closeConnections() {
-        for(HttpServerConnection i : connections) {
-            i.getIoThread().execute(new Runnable() {
-                @Override
-                public void run() {
-                    IoUtils.safeClose(i);
-                }
-            });
+        if (trackConnectionsEnabled) {
+            for(HttpServerConnection i : connections) {
+                i.getIoThread().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        IoUtils.safeClose(i);
+                    }
+                });
+            }
         }
     }
 
