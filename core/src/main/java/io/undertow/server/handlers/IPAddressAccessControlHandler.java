@@ -22,6 +22,10 @@ import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.security.AccessController;
+import java.security.PrivilegedExceptionAction;
+import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
+import io.undertow.UndertowLogger;
 import io.undertow.UndertowMessages;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
@@ -42,6 +47,14 @@ import org.xnio.Bits;
 
 /**
  * Handler that can accept or reject a request based on the IP address of the remote peer.
+ *
+ * ip-access-control: Only IP Address can be specified to the ACL rule.
+ * host-access-control: Hostname and IP Address can be specified to the ACL rule.
+ * The specified value is resolved to IP Address by DNS reverse lookup,
+ * then the ACL checking is done by comparing the resoleved address with the source address.
+ * Note that the DNS resolution from the hostname is done at the initilization phase, so
+ * a newly updated entry for the hostname after the initialization is not used for teh ACL check.
+ * Restarting this handler is required to reflect such update.
  *
  * @author Stuart Douglas
  */
@@ -462,6 +475,81 @@ public class IPAddressAccessControlHandler implements HttpHandler {
                 }
             }
             return new Wrapper(peerMatches, defaultAllow == null ? false : defaultAllow, failureStatus == null ? StatusCodes.FORBIDDEN : failureStatus);
+        }
+
+    }
+
+    public static class HostAccessBuilder implements HandlerBuilder {
+
+        @Override
+        public String name() {
+            return "host-access-control";
+        }
+
+        @Override
+        public Map<String, Class<?>> parameters() {
+            Map<String, Class<?>> params = new HashMap<>();
+            params.put("acl", String[].class);
+            params.put("failure-status", int.class);
+            params.put("default-allow", boolean.class);
+            return params;
+        }
+
+        @Override
+        public Set<String> requiredParameters() {
+            return Collections.singleton("acl");
+        }
+
+        @Override
+        public String defaultParameter() {
+            return "acl";
+        }
+
+        @Override
+        public HandlerWrapper build(Map<String, Object> config) {
+
+            String[] acl = (String[]) config.get("acl");
+            Boolean defaultAllow = (Boolean) config.get("default-allow");
+            Integer failureStatus = (Integer) config.get("failure-status");
+
+            List<Holder> peerMatches = new ArrayList<>();
+            for(String rule :acl) {
+                String[] parts = rule.split(" ");
+                if(parts.length != 2) {
+                    throw UndertowMessages.MESSAGES.invalidAclRule(rule);
+                }
+                if(parts[1].trim().equals("allow")) {
+                    for (InetAddress addr: getInetAddressArray(parts[0].trim())) {
+                        peerMatches.add(new Holder(addr.getHostAddress(), false));
+                    }
+                } else if(parts[1].trim().equals("deny")) {
+                    for (InetAddress addr: getInetAddressArray(parts[0].trim())) {
+                        peerMatches.add(new Holder(addr.getHostAddress(), true));
+                    }
+                } else {
+                    throw UndertowMessages.MESSAGES.invalidAclRule(rule);
+                }
+            }
+            return new Wrapper(peerMatches, defaultAllow == null ? false : defaultAllow, failureStatus == null ? StatusCodes.FORBIDDEN : failureStatus);
+        }
+
+        private InetAddress[] getInetAddressArray(String hostname) {
+            try {
+                if (System.getSecurityManager() == null) {
+                    return InetAddress.getAllByName(hostname);
+                } else {
+                    return AccessController.doPrivileged(new PrivilegedExceptionAction<InetAddress[]>() {
+                        @Override
+                        public InetAddress[] run() throws UnknownHostException {
+                            return InetAddress.getAllByName(hostname);
+                        }
+                    });
+                }
+            } catch (UnknownHostException | PrivilegedActionException e) {
+                UndertowLogger.ROOT_LOGGER.debugf(e, "Could not resolve hostname %s, so the specified acl rule for this hostname is not enabled", hostname);
+            }
+            InetAddress[] array = {};
+            return array;
         }
 
     }
