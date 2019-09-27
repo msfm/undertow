@@ -63,6 +63,8 @@ import io.undertow.util.ImmediateAuthenticationMechanismFactory;
  */
 public class DeploymentInfo implements Cloneable {
 
+    private static boolean DEFAULT_INTERNAL_ERROR_PAGE_WRITER_DISABLED = Boolean.getBoolean("io.undertow.servlet.deployment.internal-error-page-writer.disabled");
+
     private String deploymentName;
     private String displayName;
     private String contextPath;
@@ -109,6 +111,7 @@ public class DeploymentInfo implements Cloneable {
     private boolean sendCustomReasonPhraseOnError = false;
     private boolean useCachedAuthenticationMechanism = true;
     private boolean preservePathOnForward = true;
+    private boolean internalErrorPageWriterDisabled = DEFAULT_INTERNAL_ERROR_PAGE_WRITER_DISABLED;
     private AuthenticationMode authenticationMode = AuthenticationMode.PRO_ACTIVE;
     private ExceptionHandler exceptionHandler;
     private final Map<String, ServletInfo> servlets = new HashMap<>();
@@ -1387,6 +1390,15 @@ public class DeploymentInfo implements Cloneable {
         this.preservePathOnForward = preservePathOnForward;
     }
 
+    public boolean isInternalErrorPageWriterDisabled() {
+        return internalErrorPageWriterDisabled;
+    }
+
+    public DeploymentInfo setInternalErrorPageWriterDisabled(boolean internalErrorPageWriterDisabled) {
+        this.internalErrorPageWriterDisabled = internalErrorPageWriterDisabled;
+        return this;
+    }
+
     /**
      * Add's a listener that is only invoked once all other deployment steps have been completed
      *
@@ -1500,6 +1512,7 @@ public class DeploymentInfo implements Cloneable {
         info.containerMinorVersion = containerMinorVersion;
         info.deploymentCompleteListeners.addAll(deploymentCompleteListeners);
         info.preservePathOnForward = preservePathOnForward;
+        info.internalErrorPageWriterDisabled = internalErrorPageWriterDisabled;
         return info;
     }
 

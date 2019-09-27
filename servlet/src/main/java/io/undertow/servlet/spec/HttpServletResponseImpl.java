@@ -187,9 +187,10 @@ public final class HttpServletResponseImpl implements HttpServletResponse {
         writer = null;
         responseState = ResponseState.NONE;
         resetBuffer();
-        treatAsCommitted = false;
+        boolean internalErrorPageWriterDisabled = servletContext.getDeployment().getDeploymentInfo().isInternalErrorPageWriterDisabled();
         final String location = servletContext.getDeployment().getErrorPages().getErrorLocation(sc);
         if (location != null) {
+            treatAsCommitted = false;
             RequestDispatcherImpl requestDispatcher = new RequestDispatcherImpl(location, servletContext);
             final ServletRequestContext servletRequestContext = exchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
             try {
@@ -197,7 +198,8 @@ public final class HttpServletResponseImpl implements HttpServletResponse {
             } catch (ServletException e) {
                 throw new RuntimeException(e);
             }
-        } else if (error != null) {
+        } else if (error != null && !internalErrorPageWriterDisabled) {
+            treatAsCommitted = false;
             setContentType("text/html");
             setCharacterEncoding("UTF-8");
             if(servletContext.getDeployment().getDeploymentInfo().isEscapeErrorMessage()) {
