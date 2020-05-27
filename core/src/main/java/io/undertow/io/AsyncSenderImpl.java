@@ -416,14 +416,15 @@ public class AsyncSenderImpl implements Sender {
             }
 
             StreamSinkChannel channel = this.channel;
-            if (this.buffer != null) {
-                long t = Buffers.remaining(buffer);
+            ByteBuffer[] bufs = this.buffer;
+            if (bufs != null) {
+                long t = Buffers.remaining(bufs);
                 final long total = t;
                 long written = 0;
 
                 try {
                     do {
-                        long res = channel.write(buffer);
+                        long res = channel.write(bufs);
                         written += res;
                         if (res == 0) {
                             if(writeListener == null) {
