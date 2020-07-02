@@ -234,6 +234,7 @@ public class Http2ReceiveListener implements ChannelListener<Http2Channel> {
         exchange.setQueryString(initial.getQueryString());
         if(data != null) {
             Connectors.ungetRequestBytes(exchange, new ImmediatePooledByteBuffer(ByteBuffer.wrap(data)));
+            Connectors.terminateRequest(exchange);
         } else {
             Connectors.terminateRequest(exchange);
         }
@@ -245,7 +246,6 @@ public class Http2ReceiveListener implements ChannelListener<Http2Channel> {
             exchange.endExchange();
             return;
         }
-
 
         handleCommonSetup(sink, exchange, connection);
         Connectors.executeRootHandler(rootHandler, exchange);
