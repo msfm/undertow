@@ -32,6 +32,7 @@ import org.xnio.ChannelListener;
 import org.xnio.IoUtils;
 import org.xnio.channels.StreamSourceChannel;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -93,7 +94,7 @@ public class FormEncodedDataDefinition implements FormParserFactory.ParserDefini
 
         private final HttpServerExchange exchange;
         private final FormData data;
-        private final StringBuilder builder = new StringBuilder();
+        private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         private String name = null;
         private String charset;
         private HttpHandler handler;
@@ -141,55 +142,55 @@ public class FormEncodedDataDefinition implements FormParserFactory.ParserDefini
                             switch (state) {
                                 case 0: {
                                     if (n == '=') {
-                                        name = builder.toString();
-                                        builder.setLength(0);
+                                        name = baos.toString(charset);
+                                        baos.reset();
                                         state = 2;
                                     } else if (n == '&') {
-                                        addPair(builder.toString(), "");
-                                        builder.setLength(0);
+                                        addPair(baos.toString(charset), "");
+                                        baos.reset();
                                         state = 0;
                                     } else if (n == '%' || n == '+') {
                                         state = 1;
-                                        builder.append((char) n);
+                                        baos.write(n);
                                     } else {
-                                        builder.append((char) n);
+                                        baos.write(n);
                                     }
                                     break;
                                 }
                                 case 1: {
                                     if (n == '=') {
-                                        name = decodeParameterName(builder.toString(), charset, true, new StringBuilder());
-                                        builder.setLength(0);
+                                        name = decodeParameterName(baos.toString(charset), charset, true, new StringBuilder());
+                                        baos.reset();
                                         state = 2;
                                     } else if (n == '&') {
-                                        addPair(decodeParameterName(builder.toString(), charset, true, new StringBuilder()), "");
-                                        builder.setLength(0);
+                                        addPair(decodeParameterName(baos.toString(charset), charset, true, new StringBuilder()), "");
+                                        baos.reset();
                                         state = 0;
                                     } else {
-                                        builder.append((char) n);
+                                        baos.write(n);
                                     }
                                     break;
                                 }
                                 case 2: {
                                     if (n == '&') {
-                                        addPair(name, builder.toString());
-                                        builder.setLength(0);
+                                        addPair(name, baos.toString(charset));
+                                        baos.reset();
                                         state = 0;
                                     } else if (n == '%' || n == '+') {
                                         state = 3;
-                                        builder.append((char) n);
+                                        baos.write(n);
                                     } else {
-                                        builder.append((char) n);
+                                        baos.write(n);
                                     }
                                     break;
                                 }
                                 case 3: {
                                     if (n == '&') {
-                                        addPair(name, decodeParameterValue(name, builder.toString(), charset, true, new StringBuilder()));
-                                        builder.setLength(0);
+                                        addPair(name, decodeParameterValue(name, baos.toString(charset), charset, true, new StringBuilder()));
+                                        baos.reset();
                                         state = 0;
                                     } else {
-                                        builder.append((char) n);
+                                        baos.write(n);
                                     }
                                     break;
                                 }
@@ -199,14 +200,14 @@ public class FormEncodedDataDefinition implements FormParserFactory.ParserDefini
                 } while (c > 0);
                 if (c == -1) {
                     if (state == 2) {
-                        addPair(name, builder.toString());
+                        addPair(name, baos.toString(charset));
                     } else if (state == 3) {
-                        addPair(name, decodeParameterValue(name, builder.toString(), charset, true, new StringBuilder()));
-                    } else if(builder.length() > 0) {
+                        addPair(name, decodeParameterValue(name, baos.toString(charset), charset, true, new StringBuilder()));
+                    } else if(baos.size() > 0) {
                         if(state == 1) {
-                            addPair(decodeParameterName(builder.toString(), charset, true, new StringBuilder()), "");
+                            addPair(decodeParameterName(baos.toString(charset), charset, true, new StringBuilder()), "");
                         } else {
-                            addPair(builder.toString(), "");
+                            addPair(baos.toString(charset), "");
                         }
                     }
                     state = 4;
