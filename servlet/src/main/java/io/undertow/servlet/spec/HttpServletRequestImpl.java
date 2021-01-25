@@ -55,6 +55,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
@@ -1003,26 +1004,51 @@ public final class HttpServletRequestImpl implements HttpServletRequest {
      */
     @Override
     public String getLocalName() {
-        return exchange.getDestinationAddress().getHostName();
+        if (servletContext.getDeployment().getDeploymentInfo().isXForwardedChangeLocalAddrPort()) {
+            return exchange.getDestinationAddress().getHostName();
+        } else {
+            SocketAddress address = exchange.getConnection().getLocalAddress();
+            if (address instanceof InetSocketAddress) {
+                return ((InetSocketAddress) address).getAddress().getHostName();
+                // return ((InetSocketAddress) address).getHostString(); // this does not attempt a reverse lookup
+            }
+            return null;
+        }
     }
 
     @Override
     public String getLocalAddr() {
-        InetSocketAddress destinationAddress = exchange.getDestinationAddress();
-        if (destinationAddress == null) {
-            return "";
+        if (servletContext.getDeployment().getDeploymentInfo().isXForwardedChangeLocalAddrPort()) {
+            InetSocketAddress destinationAddress = exchange.getDestinationAddress();
+            if (destinationAddress == null) {
+                return "";
+            }
+            InetAddress address = destinationAddress.getAddress();
+            if (address == null) {
+                //this is unresolved, so we just return the host name
+                return destinationAddress.getHostString();
+            }
+            return address.getHostAddress();
+        } else {
+            SocketAddress address = exchange.getConnection().getLocalAddress();
+            if (address instanceof InetSocketAddress) {
+                return ((InetSocketAddress) address).getAddress().getHostAddress();
+            }
+            return null;
         }
-        InetAddress address = destinationAddress.getAddress();
-        if (address == null) {
-            //this is unresolved, so we just return the host name
-            return destinationAddress.getHostString();
-        }
-        return address.getHostAddress();
     }
 
     @Override
     public int getLocalPort() {
-        return exchange.getDestinationAddress().getPort();
+        if (servletContext.getDeployment().getDeploymentInfo().isXForwardedChangeLocalAddrPort()) {
+            return exchange.getDestinationAddress().getPort();
+        } else {
+            SocketAddress address = exchange.getConnection().getLocalAddress();
+            if (address instanceof InetSocketAddress) {
+                return ((InetSocketAddress) address).getPort();
+            }
+            return -1;
+        }
     }
 
     @Override

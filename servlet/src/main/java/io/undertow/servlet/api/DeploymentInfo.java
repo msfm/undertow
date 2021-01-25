@@ -109,6 +109,7 @@ public class DeploymentInfo implements Cloneable {
     private boolean sendCustomReasonPhraseOnError = false;
     private boolean useCachedAuthenticationMechanism = true;
     private boolean preservePathOnForward = true;
+    private boolean xForwardedChangeLocalAddrPort = false;
     private AuthenticationMode authenticationMode = AuthenticationMode.PRO_ACTIVE;
     private ExceptionHandler exceptionHandler;
     private final Map<String, ServletInfo> servlets = new HashMap<>();
@@ -1387,6 +1388,15 @@ public class DeploymentInfo implements Cloneable {
         this.preservePathOnForward = preservePathOnForward;
     }
 
+    public boolean isXForwardedChangeLocalAddrPort() {
+        return xForwardedChangeLocalAddrPort;
+    }
+
+    public DeploymentInfo setXForwardedChangeLocalAddrPort(boolean xForwardedChangeLocalAddrPort) {
+        this.xForwardedChangeLocalAddrPort = xForwardedChangeLocalAddrPort;
+        return this;
+    }
+
     /**
      * Add's a listener that is only invoked once all other deployment steps have been completed
      *
@@ -1500,6 +1510,7 @@ public class DeploymentInfo implements Cloneable {
         info.containerMinorVersion = containerMinorVersion;
         info.deploymentCompleteListeners.addAll(deploymentCompleteListeners);
         info.preservePathOnForward = preservePathOnForward;
+        info.xForwardedChangeLocalAddrPort = xForwardedChangeLocalAddrPort;
         return info;
     }
 
